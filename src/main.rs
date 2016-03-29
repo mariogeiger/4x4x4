@@ -61,14 +61,12 @@ impl State {
 	pub fn clone(&self) -> State {
 		State(self.0)
 	}
-	pub fn possibilities(&self, player:i32) -> Vec<State> {
-		let mut r:Vec<State> = Vec::new();
+	pub fn possibilities(&self) -> Vec<(i32,i32)> {
+		let mut r = Vec::new();
 		for x in 0..4 {
 			for y in 0..4 {
 				if self.get(x,y,3) == -1 {
-					let mut copy = self.clone();
-					copy.add(x, y, player);
-					r.push(copy);
+					r.push((x,y));
 				}
 			}
 		}
@@ -119,6 +117,24 @@ impl State {
 			return -v;
 		}
 	}
+	fn negamax(&self, player:i32, depth:i32, mut alpha:i32, beta:i32) -> i32 {
+		if depth == 0 || self.win(1-player) {
+			return self.value(player);
+		}
+		
+		let mut best_value = -std::i32::MAX;
+
+		for mov in self.possibilities() {
+			let mut child = self.clone();
+			child.add(mov.0, mov.1, player);
+			let v = -child.negamax(1-player, depth-1, -beta, -alpha);
+			
+			if v > best_value { best_value = v; }
+			if v > alpha { alpha = v; }
+			if alpha >= beta { break; }
+		}
+		best_value
+	}
 }
 
 impl fmt::Display for State {
@@ -146,69 +162,20 @@ impl fmt::Display for State {
 	}
 }
 
-fn negamax(s:&State, player:i32, depth:i32, mut alpha:i32, beta:i32) -> i32 {
-	if depth == 0 || s.win(1-player) {
-		return s.value(player);
-	}
-	
-	let mut best_value = -std::i32::MAX;
-
-	for child in s.possibilities(player) {
-		let v = -negamax(&child, 1-player, depth-1, -beta, -alpha);
-		
-		if v > best_value { best_value = v; }
-		if v > alpha { alpha = v; }
-		if alpha >= beta { break; }
-	}
-	best_value
-}
-
-fn str_to_pos(s:&String) -> Option<(i32,i32)> {
-	let x:i32;
-	let y:i32;
-	let mut chars = s.chars();
-	
-	match chars.next() {
-		Some(c) => {
-			let c = c as i32;
-			if c >= '1' as i32 && c <= '4' as i32 {
-				x = c - '1' as i32;
-			} else {
-				return None;
-			}
-		}
-		None    => { return None; }
-	}
-	match chars.next() {
-		Some(c) => {
-			let c = c as i32;
-			if c >= '1' as i32 && c <= '4' as i32 {
-				y = c - '1' as i32;
-			} else {
-				return None;
-			}
-		}
-		None    => { return None; }
-	}
-	match chars.next() {
-		Some(_) => { return None; }
-		None    => { }
-	}
-	Some((x,y))
-}
-
 fn human(x:&mut State) -> bool {
-	let mut pos = String::new();
-	io::stdin().read_line(&mut pos)
+	let mut mov = String::new();
+	io::stdin().read_line(&mut mov)
 		.expect("Failed to read line");
 	
-	let pos: (i32,i32) = match str_to_pos(&String::from(pos.trim())) {
-		Some(x) => x,
-		None    => {
-			return false;
-		}
+	let mov:i32 = match mov.trim().parse() {
+		Ok(num) => num,
+		Err(_)  => return false
 	};
-	x.add(pos.0,pos.1,0)
+	
+	let mx = mov / 10 - 1;
+	let my = mov % 10 - 1;
+	
+	mx >= 0 && mx < 4 && my >= 0 && my < 4 && x.add(mx, my, 0)
 }
 
 fn robot(x:&mut State) -> bool {
@@ -217,17 +184,21 @@ fn robot(x:&mut State) -> bool {
 	let mut best_value = -std::i32::MAX;
 	let mut alpha = -std::i32::MAX;
 	let beta = std::i32::MAX;
+	let mut best_mov = (0,0);
 	
-	for p in x.possibilities(1) {
-		let v = -negamax(&p, 0, 7, -beta, -alpha);
+	for mov in x.possibilities() {
+		let mut y = x.clone();
+		y.add(mov.0, mov.1, 1);
+		let v = -y.negamax(0, 7, -beta, -alpha);
 		if v > best_value {
 			best_value = v;
-			*x = p;
+			best_mov = mov;
 		}
 		if v > alpha { alpha = v; }
 	}
-	println!("value = {}", best_value);
-
+	println!("{}{} value = {}", best_mov.0 + 1, best_mov.1 + 1, best_value);
+	
+	x.add(best_mov.0, best_mov.1, 1);
 	true
 }
 
