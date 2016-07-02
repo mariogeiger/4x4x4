@@ -1,6 +1,13 @@
 use std;
 
+#[derive(Copy)]
 pub struct State([i32; 4*4*4]);
+
+impl Clone for State {
+	fn clone(&self) -> State {
+		State(self.0)
+	}
+}
 
 impl State {
 	pub fn new() -> State {
@@ -19,9 +26,6 @@ impl State {
 			}
 		}
 		false
-	}
-	pub fn clone(&self) -> State {
-		State(self.0)
 	}
 	pub fn possibilities(&self) -> Vec<(i32,i32)> {
 		let mut r = Vec::new();

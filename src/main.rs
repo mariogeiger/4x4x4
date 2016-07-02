@@ -105,6 +105,10 @@ fn main() {
 			target.clear_color_and_depth((0.9, 0.0, 0.0, 1.0), 1.0);
 		} else if state.win(1) {
 			target.clear_color_and_depth((0.9, 0.9, 0.0, 1.0), 1.0);
+		} else if player_turn == 0 {
+			target.clear_color_and_depth((0.1, 0.05, 0.05, 1.0), 1.0);
+		} else if player_turn == 1 {
+			target.clear_color_and_depth((0.1, 0.1, 0.05, 1.0), 1.0);
 		} else {
 			target.clear_color_and_depth((0.0, 0.1, 0.0, 1.0), 1.0);
 		}
@@ -123,7 +127,7 @@ fn main() {
 			model: Mat4::identity().0,
 			view: view.0,
 			perspective: pers.0,
-			light: [1., -1., -1f32],
+			light: [0., 0., -3f32],
 			high_color: [0.1, 0.6, 0.1f32],
 			dark_color: [0.1, 0.3, 0.1f32]
 		};
@@ -145,7 +149,7 @@ fn main() {
 		for y in (0..4).rev() {
 		for z in 0..4 {
 			let model = Mat4::translation(x as f32 - 1.5, y as f32 - 1.5, z as f32 - 1.5)
-				* Mat4::scale(0.45);
+				* Mat4::scale(0.49);
 			let player = state.get(x, y, z);
 		
 			let high_color;
@@ -156,7 +160,7 @@ fn main() {
 			} else if player == 1 {
 				high_color = [1.0, 1.0, 0.0f32];
 				dark_color = [0.9, 0.9, 0.1f32];				
-			} else if key_position.0 == x && key_position.1 == y {
+			} else if player_turn == 0 && key_position.0 == x && key_position.1 == y {
 				high_color = [0.5, 0.5, 1.0f32];
 				dark_color = [0.5, 0.5, 0.9f32];				
 			} else {
@@ -167,7 +171,7 @@ fn main() {
 				model: model.0,
 				view: view.0,
 				perspective: pers.0,
-				light: [1., -1., -1f32],
+				light: [0., 0., -3f32],
 				high_color: high_color,
 				dark_color: dark_color
 			};
@@ -195,8 +199,6 @@ fn main() {
 		
 		if player_turn == 1 {
 			if thread.is_empty() {
-				let state = state.clone();
-				
 				thread.push(Future::spawn(move || {
 					let mut best_value = -std::i32::MAX;
 					let mut alpha = -std::i32::MAX;
@@ -206,16 +208,15 @@ fn main() {
 					for mov in state.possibilities() {
 						let mut y = state.clone();
 						y.add(mov.0, mov.1, 1);
-						let v = -y.negamax(0, 6, -beta, -alpha);
+						let v = -y.negamax(0, 7, -beta, -alpha);
 						if v > best_value {
 							best_value = v;
 							best_mov = mov;
 						}
 						if v > alpha { alpha = v; }
 					}
-					println!("{}{} value = {}", best_mov.0 + 1, best_mov.1 + 1, best_value);
+					println!("value = {}", best_value);
 					
-					let mut state = state.clone();
 					state.add(best_mov.0, best_mov.1, 1);
 					state
 				}));
@@ -247,12 +248,16 @@ fn main() {
 								if key_position.1 < 3 { key_position.1 += 1; }
 							}
 							VirtualKeyCode::Return|VirtualKeyCode::Space => {
-								if state.add(key_position.0, key_position.1, player_turn) {
-									player_turn = 1 - player_turn;
+								if player_turn == 0 {
+									if state.add(key_position.0, key_position.1, player_turn) {
+										player_turn = 1 - player_turn;
+									}
 								}
 							}
 							VirtualKeyCode::Escape => {
-								state = state::State::new();
+								if player_turn == 0 {
+									state = state::State::new();
+								}
 							}
 							_ => ()
 						}
