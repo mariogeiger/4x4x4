@@ -6,6 +6,8 @@ impl State {
 	pub fn new() -> State {
 		State([-1; 4*4*4])
 	}
+	// -1 : empty
+	// 0 1 : players
 	pub fn get(&self, x:i32, y:i32, z:i32) -> i32 {
 		self.0[(x + 4*y + 16*z) as usize]
 	}
