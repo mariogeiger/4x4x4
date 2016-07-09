@@ -6,4 +6,4 @@ authors = ["Mario Geiger <geiger.mario@gmail.com>"]
 [dependencies]
 glium = "*"
 eventual = "*"
-
+time = "*"

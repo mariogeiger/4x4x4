@@ -1,9 +1,15 @@
 use std;
 use std::cmp::Ordering;
+use table;
 
-
-#[derive(Copy)]
 pub struct State([i32; 4*4*4]);
+/* 0---------------> x
+   | 0  1  2  3
+   | 4  5  6  7
+   | 8  9  10 11
+   | 12 13 14 15 
+   |
+   v y               */
 
 impl Clone for State {
 	fn clone(&self) -> State {
@@ -57,19 +63,20 @@ impl State {
 	}
 	// -1 : empty
 	// 0 1 : players
-	pub fn get(&self, x:i32, y:i32, z:i32) -> i32 {
-		self.0[(x + 4*y + 16*z) as usize]
+	pub fn get(&self, x: usize, y: usize, z: usize) -> i32 {
+		self.0[(x + 4*y + 16*z)]
 	}
-	pub fn add(&mut self, x:i32, y:i32, player:i32) -> bool {
+	pub fn add(&mut self, x: usize, y: usize, player:i32) -> bool {
 		for z in 0..4 {
-			if self.get(x,y,z) == -1 {
-				self.0[(x + 4*y + 16*z) as usize] = player;
+			if self.get(x, y, z) == -1 {
+				self.0[(x + 4*y + 16*z)] = player;
 				return true;
 			}
 		}
 		false
 	}
-	pub fn possibilities(&self) -> Vec<(i32,i32)> {
+	
+	pub fn possibilities(&self) -> Vec<(usize,usize)> {
 		let mut r = Vec::new();
 		for x in 0..4 {
 			for y in 0..4 {
@@ -80,11 +87,12 @@ impl State {
 		}
 		r
 	}
+	
 	pub fn win(&self, player:i32) -> bool {
 		for line in LINES.into_iter() {
 			let mut c = 0;
 			for i in 0..4 {
-				if self.0[line[i] as usize] == player { c += 1; }
+				if self.0[line[i]] == player { c += 1; }
 			}
 			if c == 4 {
 				return true;
@@ -95,22 +103,29 @@ impl State {
 	#[allow(dead_code)]
 	pub fn swap(&mut self) {
 		for i in 0..4*4*4 {
-			self.0[i] = (2 + self.0[i] * (1 - 3 * self.0[i])) / 2;
-			/* ax^2 + bx + c
-			a - b + c = -1
-			c = 1
-			a + b + c = 0
-			
-			a - b = -2
-			a + b = -1
-			
-			2a = -3
-			2b = 1
-			
-			-3/2 x^2 + x/2 + 1 = (2 + x - 3x^2) / 2 = (2 + x (1 - 3x)) / 2
-			*/
+			self.0[i] = 
+				if self.0[i] == 1 {
+					0
+				} else if self.0[i] == 0 {
+					1
+				} else {
+					-1
+				}
 		}
 	}
+	
+	pub fn symmetry(&self, id: usize) -> State {
+		let mut x = State::new();
+		
+		for z in 0..4 {
+			for i in 0..16 {
+				x.0[16*z + i] = self.0[16*z + SYMMETRIES[id][i]];
+			}
+		}
+		
+		x
+	}
+	
 	pub fn value(&self) -> i32 {
 		// 1        - 1 on a row
 		// 76       - 2 on a row
@@ -122,8 +137,8 @@ impl State {
 			let mut c0 = 0;
 			let mut c1 = 0;
 			for i in 0..4 {
-				if self.0[line[i] as usize] == 0 { c0 += 1; }
-				if self.0[line[i] as usize] == 1 { c1 += 1; }
+				if self.0[line[i]] == 0 { c0 += 1; }
+				if self.0[line[i]] == 1 { c1 += 1; }
 			}
 			if c1 == 0 {
 				if c0 == 1 { v += 1; }
@@ -142,9 +157,9 @@ impl State {
 	}
 	
 	// returns a score in favor of player `player`
+	// do not look for score smaller than `alpha`
 	// do not look for score bigger than `beta`
-	pub fn negamax(&self, player: i32, depth: i32, mut alpha: i32, beta: i32
-		/*, &mut table: table::Table*/) -> i32 {
+	pub fn negamax(&self, player: i32, depth: i32, mut alpha: i32, beta: i32) -> i32 {
 		if depth == 0 || self.win(1-player) {
 			return (1 - 2*player) * self.value();
 		}
@@ -161,6 +176,39 @@ impl State {
 			if v > alpha { alpha = v; }
 			if alpha >= beta { break; }
 		}
+		best_value
+	}
+	
+	pub fn negamax_table(&self, player: i32, depth: i32, mut alpha: i32, mut beta: i32, table: &mut table::Table) -> i32 {
+		if depth == 0 || self.win(1-player) {
+			return (1 - 2*player) * self.value();
+		}
+		
+		if depth <= 2 {
+			return self.negamax(player, depth, alpha, beta);
+		}
+				
+		if let Some(s) = table.get(self, player, depth, &mut alpha, &mut beta) {
+			return s;
+		}
+		
+		let orig_alpha = alpha;
+		let orig_beta = beta;
+
+		let mut best_value = -std::i32::MAX;
+
+		for mov in self.possibilities() {
+			let mut child = self.clone();
+			child.add(mov.0, mov.1, player);
+
+			let v = -child.negamax_table(1-player, depth-1, -beta, -alpha, table);
+
+			if v > best_value { best_value = v; }
+			if v > alpha { alpha = v; }
+			if alpha >= beta { break; }
+		}
+		
+		table.insert(self.clone(), player, depth, orig_alpha, orig_beta, best_value);
 		best_value
 	}
 }
@@ -191,7 +239,7 @@ impl std::fmt::Display for State {
 }
 
 // x + 4*y + 16*z
-static LINES:[[i32;4];76] = [
+static LINES: [[usize; 4]; 76] = [
 // 3*2 faces
 // xy
 [0, 16, 32, 48],[4, 20, 36, 52],[8, 24, 40, 56],[12, 28, 44, 60],
@@ -225,3 +273,66 @@ static LINES:[[i32;4];76] = [
 // 4*2 edges
 [0, 21, 42, 63], [3, 22, 41, 60], [12, 25, 38, 51], [15, 26, 37, 48],
 ];
+
+/* Symmetry group
+id : identity
+mv : verical mirror
+mh : horizontal mirror
+cw : rotation clockwise
+cc : counter clockwise
+iv : iversion
+d1 : diagonal mirror
+d2 : second diagonal mirror
+*/
+
+static SYMMETRIES: [[usize; 16]; 8] = [
+	[
+	00, 01, 02, 03, // identity
+	04, 05, 06, 07,
+	08, 09, 10, 11, 
+	12, 13, 14, 15
+	],
+	[
+	12, 13, 14, 15, // h-mirror
+	08, 09, 10, 11, 
+	04, 05, 06, 07,
+	00, 01, 02, 03
+	],
+	[
+	03, 02, 01, 00, // v-mirror
+	07, 06, 05, 04,
+	11, 10, 09, 08, 
+	15, 14, 13, 12
+	],
+	[
+	03, 07, 11, 15, // c-clockwise
+	02, 06, 10, 14,
+	01, 05, 09, 13, 
+	00, 04, 08, 12
+	],
+	[
+	12, 08, 04, 00, // clockwise
+	13, 09, 05, 01,
+	14, 10, 06, 02, 
+	15, 11, 07, 03
+	],
+	[
+	15, 14, 13, 12, // inversion
+	11, 10, 09, 08,
+	07, 06, 05, 04, 
+	03, 02, 01, 00
+	],
+	[
+	00, 04, 08, 12, // diagonal mirror
+	01, 05, 09, 13,
+	02, 06, 10, 14, 
+	03, 07, 11, 15
+	],
+	[
+	15, 11, 07, 03, // diagonal mirror
+	14, 10, 06, 02,
+	13, 09, 05, 01, 
+	12, 08, 04, 00
+	]
+];
+

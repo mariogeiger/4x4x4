@@ -2,6 +2,7 @@
 extern crate glium;
 
 extern crate eventual;
+extern crate time;
 
 mod sphere;
 mod state;
@@ -96,6 +97,7 @@ fn main() {
 	let mut player_turn = 0;
 	
 	let mut state = state::State::new();
+	let mut table = table::Table::new();
 
 	let mut thread = None;
 	
@@ -201,32 +203,51 @@ fn main() {
 		if player_turn == 1 {
 			if thread.is_none() {
 				let state = state.clone();
+				let table = table.clone();
+				
 				thread = Some(Future::spawn(move || {
 					let mut state = state.clone();
+					let mut table = table.clone();
+					
 					let mut best_value = -std::i32::MAX;
 					let mut alpha = -std::i32::MAX;
 					let beta = std::i32::MAX;
 					let mut best_mov = (0,0);
-
-					for mov in state.possibilities() {
+					
+					let t0 = time::precise_time_s();
+					
+					let possibilities = state.possibilities();
+					let n = possibilities.len();
+					let mut i = 0;
+					for mov in possibilities {
+						println!("{}/{}...", i, n);
 						let mut y = state.clone();
 						y.add(mov.0, mov.1, 1);
-						let v = -y.negamax(0, 6, -beta, -alpha);
+						let v = -y.negamax_table(0, 6, -beta, -alpha, &mut table);
 						if v > best_value {
 							best_value = v;
 							best_mov = mov;
 						}
 						if v > alpha { alpha = v; }
+						
+						i += 1;
 					}
-					println!("value = {}", best_value);
 					
 					state.add(best_mov.0, best_mov.1, 1);
-					state
+					table.clean();
+
+					let t1 = time::precise_time_s();
+					
+					println!("value={} {:.2} seconds {} values into table", best_value, t1-t0, table.len());
+					
+					(state, table)
 				}));
 			}
 			
 			if thread.as_ref().map_or(false, Future::is_ready) {
-				state = thread.unwrap().expect().unwrap();
+				let result = thread.unwrap().expect().unwrap();
+				state = result.0;
+				table = result.1;
 				thread = None;
 				player_turn = 1 - player_turn;
 			}
@@ -263,6 +284,9 @@ fn main() {
 								if player_turn == 0 {
 									state = state::State::new();
 								}
+							}
+							VirtualKeyCode::P => {
+								player_turn = 1;
 							}
 							_ => ()
 						}
