@@ -1,6 +1,8 @@
 use std;
 use std::cmp::Ordering;
 
+
+#[derive(Copy)]
 pub struct State([i32; 4*4*4]);
 
 impl Clone for State {
@@ -147,25 +149,9 @@ impl State {
 			return (1 - 2*player) * self.value();
 		}
 
-		/*let origalpha = alpha;	
-		match table.look(&self, player, depth, &mut alpha, &mut beta) {
-			Some(score) => return score,
-			None => ()
-		}*/
-		
 		let mut best_value = -std::i32::MAX;
-		let possibilities = self.possibilities();
-		
-		// `player` has to play
-		/*for mov in possibilities.iter() {
-			let mut child = self.clone();
-			child.add(mov.0, mov.1, player);
-			
-			if child.win(player) {
-				return (1 - 2*player) * child.value();
-			}
-		}*/
-		for mov in possibilities.iter() {
+
+		for mov in self.possibilities() {
 			let mut child = self.clone();
 			child.add(mov.0, mov.1, player);
 
@@ -175,9 +161,6 @@ impl State {
 			if v > alpha { alpha = v; }
 			if alpha >= beta { break; }
 		}
-		
-		//table.put(self.clone(), player, depth, origalpha, beta, best_value);
-		
 		best_value
 	}
 }
