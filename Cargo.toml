@@ -3,6 +3,14 @@ name = "4x4x4"
 version = "0.1.0"
 authors = ["Mario Geiger <geiger.mario@gmail.com>"]
 
+[[bin]]
+name = "terminal"
+path = "src/main_nogui.rs"
+
+[[bin]]
+name = "opengl"
+path = "src/main_opengl.rs"
+
 [dependencies]
 glium = "0.15.0"
 eventual = "0.1.7"
