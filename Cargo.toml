@@ -4,6 +4,6 @@ version = "0.1.0"
 authors = ["Mario Geiger <geiger.mario@gmail.com>"]
 
 [dependencies]
-glium = "*"
-eventual = "*"
-time = "*"
+glium = "0.15.0"
+eventual = "0.1.7"
+time = "0.1.35"
