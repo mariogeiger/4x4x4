@@ -63,12 +63,12 @@ impl State {
     // -1 : empty
     // 0 1 : players
     pub fn get(&self, x: usize, y: usize, z: usize) -> i32 {
-        self.0[(x + 4 * y + 16 * z)]
+        self.0[x + 4 * y + 16 * z]
     }
     pub fn add(&mut self, x: usize, y: usize, player: i32) -> bool {
         for z in 0..4 {
             if self.get(x, y, z) == -1 {
-                self.0[(x + 4 * y + 16 * z)] = player;
+                self.0[x + 4 * y + 16 * z] = player;
                 return true;
             }
         }
@@ -88,16 +88,13 @@ impl State {
     }
 
     pub fn win(&self, player: i32) -> bool {
-        for line in LINES.into_iter() {
-            let mut c = 0;
+        'outer: for line in LINES.iter() {
             for i in 0..4 {
-                if self.0[line[i]] == player {
-                    c += 1;
+                if self.0[line[i]] != player {
+                    continue 'outer;
                 }
             }
-            if c == 4 {
-                return true;
-            }
+            return true;
         }
         false
     }
@@ -126,6 +123,7 @@ impl State {
         x
     }
 
+    // compute the value in player 0 perspective
     pub fn value(&self) -> i32 {
         // 1        - 1 on a row
         // 76       - 2 on a row
@@ -133,7 +131,7 @@ impl State {
         // 76*76*76 - 4 on a row
         let mut v = 0;
 
-        for line in LINES.into_iter() {
+        for line in LINES.iter() {
             let mut c0 = 0;
             let mut c1 = 0;
             for i in 0..4 {
@@ -176,7 +174,7 @@ impl State {
         v
     }
 
-    // returns a score in favor of player `player`
+    // returns a score in favor of player `player` in `player` perspective (higher is better)
     // do not look for score smaller than `alpha`
     // do not look for score bigger than `beta`
     pub fn negamax(&self, player: i32, depth: i32, mut alpha: i32, beta: i32) -> i32 {

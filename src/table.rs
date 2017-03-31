@@ -107,7 +107,7 @@ impl Table {
             let symmetric = state.symmetry(id);
             if let Some(vs) = self.0.get_mut(&symmetric) {
                 vs.push(entry);
-                return;
+                continue;
             }
             self.0.insert(symmetric, vec![entry]);
         }

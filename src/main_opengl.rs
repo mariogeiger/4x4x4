@@ -5,6 +5,7 @@ extern crate eventual;
 extern crate time;
 
 mod sphere;
+mod cube;
 mod state;
 mod glmath;
 mod table;
@@ -33,6 +34,7 @@ fn main() {
         .unwrap();
 
     let sphere = sphere::Sphere::new(&display, 30, 30);
+    let cube = cube::Cube::new(&display);
 
     let board_verticies = vec![Vertex {
                                    position: [-2., -2., -2.],
@@ -116,6 +118,7 @@ fn main() {
     let mut phi: f32 = 3.25 / 4.0;
     let mut scale: f32 = 1.0;
 
+    let mut last_move = (4, 4, 4); // start out of bounds
     let mut mouse_last_pos = (0, 0);
     let mut mouse_pressed = false;
     let mut key_position = (0, 0);
@@ -177,9 +180,9 @@ fn main() {
         for x in (0..4).rev() {
             for y in (0..4).rev() {
                 for z in 0..4 {
-                    let model = Mat4::translation(x as f32 - 1.5, y as f32 - 1.5, z as f32 - 1.5) *
-                                Mat4::scale(0.49);
                     let player = state.get(x, y, z);
+                    let model = Mat4::translation(x as f32 - 1.5, y as f32 - 1.5, z as f32 - 1.5) *
+                                Mat4::scale(if player == 1 { 0.4 } else { 0.49 });
 
                     let high_color;
                     let dark_color;
@@ -196,11 +199,20 @@ fn main() {
                         continue;
                     }
 
+                    let light: [f32; 3] = if last_move.0 == x && last_move.1 == y &&
+                                             last_move.2 == z {
+                        let t = ((5.0 * time::precise_time_s()) % (2.0 * std::f64::consts::PI)) as
+                                f32;
+                        [t.cos(), t.sin(), 0f32]
+                    } else {
+                        [0., 0., -3f32]
+                    };
+
                     let uniform = uniform!{
                         model: model.0,
                         view: view.0,
                         perspective: pers.0,
-                        light: [0., 0., -3f32],
+                        light: light,
                         high_color: high_color,
                         dark_color: dark_color
                     };
@@ -218,12 +230,21 @@ fn main() {
                         ..Default::default()
                     };
 
-                    target.draw(sphere.get_positions(),
-                              sphere.get_indices(),
-                              &program,
-                              &uniform,
-                              &params)
-                        .unwrap();
+                    if player == 1 {
+                        target.draw(cube.get_positions(),
+                                  cube.get_indices(),
+                                  &program,
+                                  &uniform,
+                                  &params)
+                            .unwrap();
+                    } else {
+                        target.draw(sphere.get_positions(),
+                                  sphere.get_indices(),
+                                  &program,
+                                  &uniform,
+                                  &params)
+                            .unwrap();
+                    }
 
                     if player == -1 {
                         break;
@@ -242,7 +263,6 @@ fn main() {
                 let table = table.clone();
 
                 thread = Some(Future::spawn(move || {
-                    let mut state = state.clone();
                     let mut table = table.clone();
 
                     let mut best_value = -std::i32::MAX;
@@ -271,7 +291,6 @@ fn main() {
                         i += 1;
                     }
 
-                    state.add(best_mov.0, best_mov.1, 1);
                     table.clean();
 
                     let t1 = time::precise_time_s();
@@ -281,17 +300,24 @@ fn main() {
                              t1 - t0,
                              table.len());
 
-                    (state, table)
+                    for z in 0..4 {
+                        if state.get(best_mov.0, best_mov.1, z) == -1 {
+                            return ((best_mov.0, best_mov.1, z), table);
+                        }
+                    }
+
+                    ((0, 0, 0), table)
                 }));
             }
 
             // if thread finished
             if thread.as_ref().map_or(false, Future::is_ready) {
                 let result = thread.unwrap().expect().unwrap();
-                state = result.0;
+                last_move = result.0;
+                state.add(last_move.0, last_move.1, 1);
                 table = result.1;
                 thread = None;
-                player_turn = 1 - player_turn;
+                player_turn = 0;
             }
         }
 
@@ -333,6 +359,7 @@ fn main() {
                             VirtualKeyCode::Escape => {
                                 if player_turn == 0 {
                                     state = state::State::new();
+                                    last_move.0 = 4;
                                 }
                             }
                             VirtualKeyCode::P => {
