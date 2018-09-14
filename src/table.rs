@@ -28,7 +28,6 @@ impl Table {
         Table(BTreeMap::new())
     }
 
-    #[allow(dead_code)]
     pub fn len(&self) -> usize {
         let mut x = 0;
         for (_, list) in self.0.iter() {
@@ -37,13 +36,14 @@ impl Table {
         x
     }
 
-    pub fn get(&self,
-               state: &State,
-               player: i32,
-               depth: i32,
-               alpha: &mut i32,
-               beta: &mut i32)
-               -> Option<i32> {
+    pub fn get(
+        &self,
+        state: &State,
+        player: i32,
+        depth: i32,
+        alpha: &mut i32,
+        beta: &mut i32,
+    ) -> Option<i32> {
         if player == 1 {
             let mut cpy = state.clone();
             cpy.swap();
@@ -79,13 +79,15 @@ impl Table {
         None
     }
 
-    pub fn insert(&mut self,
-                  mut state: State,
-                  player: i32,
-                  depth: i32,
-                  alpha: i32,
-                  beta: i32,
-                  score: i32) {
+    pub fn insert(
+        &mut self,
+        mut state: State,
+        player: i32,
+        depth: i32,
+        alpha: i32,
+        beta: i32,
+        score: i32,
+    ) {
         if player == 1 {
             // allways use the player 0 perspective
             state.swap();
@@ -139,10 +141,11 @@ impl Table {
         for (_, list) in self.0.iter_mut() {
             let mut i = 0;
             'iloop: while i < list.len() {
-
                 for j in 0..list.len() {
-                    if i != j && list[j].depth >= list[i].depth &&
-                       (list[j].quality == Quality::Exact || list[j].quality == list[i].quality) {
+                    if i != j
+                        && list[j].depth >= list[i].depth
+                        && (list[j].quality == Quality::Exact || list[j].quality == list[i].quality)
+                    {
                         // `j` is better than `i`
                         list.swap_remove(i);
                         continue 'iloop;

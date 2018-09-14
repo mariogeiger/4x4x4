@@ -48,20 +48,24 @@ fn robot(x: &mut state::State, table: &mut table::Table) -> bool {
         i += 1;
     }
 
-    println!("{}{} value = {}",
-             best_mov.0 + 1,
-             best_mov.1 + 1,
-             best_value);
+    println!(
+        "{}{} value = {}",
+        best_mov.0 + 1,
+        best_mov.1 + 1,
+        best_value
+    );
 
     x.add(best_mov.0, best_mov.1, 1);
     table.clean();
 
     let t1 = time::precise_time_s();
 
-    println!("value={} {:.2} seconds {} values into table",
-             best_value,
-             t1 - t0,
-             table.len());
+    println!(
+        "value={} {:.2} seconds {} values into table",
+        best_value,
+        t1 - t0,
+        table.len()
+    );
 
     true
 }

@@ -1,5 +1,5 @@
-use std::ops;
 use std::f32;
+use std::ops;
 
 #[derive(Copy, Clone)]
 pub struct Mat4(pub [[f32; 4]; 4]);
@@ -37,9 +37,9 @@ impl Mat3 {
         }
     }
     pub fn det(&self) -> f32 {
-        self.0[0][0] * (self.0[1][1] * self.0[2][2] - self.0[1][2] * self.0[2][1]) -
-        self.0[0][1] * (self.0[1][0] * self.0[2][2] - self.0[1][2] * self.0[2][0]) +
-        self.0[0][2] * (self.0[1][0] * self.0[2][1] - self.0[2][0] * self.0[1][1])
+        self.0[0][0] * (self.0[1][1] * self.0[2][2] - self.0[1][2] * self.0[2][1])
+            - self.0[0][1] * (self.0[1][0] * self.0[2][2] - self.0[1][2] * self.0[2][0])
+            + self.0[0][2] * (self.0[1][0] * self.0[2][1] - self.0[2][0] * self.0[1][1])
     }
 }
 
@@ -52,16 +52,28 @@ impl Mat4 {
 	03 13 23 33
 	*/
     pub fn identity() -> Mat4 {
-        Mat4([[1.0, 0.0, 0.0, 0.0],
-              [0.0, 1.0, 0.0, 0.0],
-              [0.0, 0.0, 1.0, 0.0],
-              [0.0, 0.0, 0.0, 1.0]])
+        Mat4([
+            [1.0, 0.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ])
     }
     pub fn scale(s: f32) -> Mat4 {
-        Mat4([[s, 0.0, 0.0, 0.0], [0.0, s, 0.0, 0.0], [0.0, 0.0, s, 0.0], [0.0, 0.0, 0.0, 1.0]])
+        Mat4([
+            [s, 0.0, 0.0, 0.0],
+            [0.0, s, 0.0, 0.0],
+            [0.0, 0.0, s, 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ])
     }
     pub fn translation(x: f32, y: f32, z: f32) -> Mat4 {
-        Mat4([[1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0], [0.0, 0.0, 1.0, 0.0], [x, y, z, 1.0]])
+        Mat4([
+            [1.0, 0.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0],
+            [x, y, z, 1.0],
+        ])
     }
     pub fn rotation(a: f32, mut x: f32, mut y: f32, mut z: f32) -> Mat4 {
         // http://fr.wikipedia.org/wiki/Matrice_de_rotation
@@ -78,23 +90,29 @@ impl Mat4 {
             z /= len;
         }
 
-        Mat4([[x * x * ic + c, x * y * ic - z * s, x * z * ic + y * s, 0.0],
-              [y * x * ic + z * s, y * y * ic + c, y * z * ic - x * s, 0.0],
-              [x * z * ic - y * s, y * z * ic + x * s, z * z * ic + c, 0.0],
-              [0.0, 0.0, 0.0, 1.0]])
+        Mat4([
+            [x * x * ic + c, x * y * ic - z * s, x * z * ic + y * s, 0.0],
+            [y * x * ic + z * s, y * y * ic + c, y * z * ic - x * s, 0.0],
+            [x * z * ic - y * s, y * z * ic + x * s, z * z * ic + c, 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ])
     }
     pub fn perspective(aspect_ratio: f32, fov: f32, znear: f32, zfar: f32) -> Mat4 {
         let f = 1.0 / (fov / 2.0).tan();
 
-        Mat4([[f / aspect_ratio, 0.0, 0.0, 0.0],
-              [0.0, f, 0.0, 0.0],
-              [0.0, 0.0, -(zfar + znear) / (zfar - znear), -1.0],
-              [0.0, 0.0, -(2.0 * zfar * znear) / (zfar - znear), 0.0]])
+        Mat4([
+            [f / aspect_ratio, 0.0, 0.0, 0.0],
+            [0.0, f, 0.0, 0.0],
+            [0.0, 0.0, -(zfar + znear) / (zfar - znear), -1.0],
+            [0.0, 0.0, -(2.0 * zfar * znear) / (zfar - znear), 0.0],
+        ])
     }
     pub fn to_mat3(&self) -> Mat3 {
-        Mat3([[self.0[0][0], self.0[0][1], self.0[0][2]],
-              [self.0[1][0], self.0[1][1], self.0[1][2]],
-              [self.0[2][0], self.0[2][1], self.0[2][2]]])
+        Mat3([
+            [self.0[0][0], self.0[0][1], self.0[0][2]],
+            [self.0[1][0], self.0[1][1], self.0[1][2]],
+            [self.0[2][0], self.0[2][1], self.0[2][2]],
+        ])
     }
     pub fn normal_matrix(&self) -> Option<Mat3> {
         self.to_mat3().inverse()

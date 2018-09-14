@@ -2,7 +2,6 @@ use glium;
 
 use std::f32;
 
-#[allow(dead_code)]
 #[derive(Copy, Clone)]
 pub struct Vertex {
     position: (f32, f32, f32),
@@ -18,23 +17,154 @@ pub struct Cube {
 
 impl Cube {
     pub fn new<F>(facade: &F) -> Cube
-        where F: glium::backend::Facade
+    where
+        F: glium::backend::Facade,
     {
         let verticies = vec![
-            Vertex{ position: (-1.,  1., -1.), normal: (-1., 0., 0.) }, Vertex{ position: (-1., -1., -1.), normal: (-1., 0., 0.) }, Vertex{ position: (-1., -1.,  1.), normal: (-1., 0., 0.) },
-            Vertex{ position: (-1.,  1.,  1.), normal: (-1., 0., 0.) }, Vertex{ position: (-1.,  1., -1.), normal: (-1., 0., 0.) }, Vertex{ position: (-1., -1.,  1.), normal: (-1., 0., 0.) },
-            Vertex{ position: ( 1., -1., -1.), normal: ( 1., 0., 0.) }, Vertex{ position: ( 1.,  1., -1.), normal: ( 1., 0., 0.) }, Vertex{ position: ( 1., -1.,  1.), normal: ( 1., 0., 0.) },
-            Vertex{ position: ( 1.,  1., -1.), normal: ( 1., 0., 0.) }, Vertex{ position: ( 1.,  1.,  1.), normal: ( 1., 0., 0.) }, Vertex{ position: ( 1., -1.,  1.), normal: ( 1., 0., 0.) },
-
-            Vertex{ position: ( 1., -1., -1.), normal: (0., 0., -1.) }, Vertex{ position: (-1., -1., -1.), normal: (0., 0., -1.) }, Vertex{ position: (-1.,  1., -1.), normal: (0., 0., -1.) },
-            Vertex{ position: ( 1.,  1., -1.), normal: (0., 0., -1.) }, Vertex{ position: ( 1., -1., -1.), normal: (0., 0., -1.) }, Vertex{ position: (-1.,  1., -1.), normal: (0., 0., -1.) },
-            Vertex{ position: (-1., -1.,  1.), normal: (0., 0.,  1.) }, Vertex{ position: ( 1., -1.,  1.), normal: (0., 0.,  1.) }, Vertex{ position: (-1.,  1.,  1.), normal: (0., 0.,  1.) },
-            Vertex{ position: ( 1., -1.,  1.), normal: (0., 0.,  1.) }, Vertex{ position: ( 1.,  1.,  1.), normal: (0., 0.,  1.) }, Vertex{ position: (-1.,  1.,  1.), normal: (0., 0.,  1.) },
-
-            Vertex{ position: (-1., -1.,  1.), normal: (0., -1., 0.) }, Vertex{ position: (-1., -1., -1.), normal: (0., -1., 0.) }, Vertex{ position: ( 1., -1., -1.), normal: (0., -1., 0.) },
-            Vertex{ position: ( 1., -1.,  1.), normal: (0., -1., 0.) }, Vertex{ position: (-1., -1.,  1.), normal: (0., -1., 0.) }, Vertex{ position: ( 1., -1., -1.), normal: (0., -1., 0.) },
-            Vertex{ position: (-1.,  1., -1.), normal: (0.,  1., 0.) }, Vertex{ position: (-1.,  1.,  1.), normal: (0.,  1., 0.) }, Vertex{ position: ( 1.,  1., -1.), normal: (0.,  1., 0.) },
-            Vertex{ position: (-1.,  1.,  1.), normal: (0.,  1., 0.) }, Vertex{ position: ( 1.,  1.,  1.), normal: (0.,  1., 0.) }, Vertex{ position: ( 1.,  1., -1.), normal: (0.,  1., 0.) },
+            Vertex {
+                position: (-1., 1., -1.),
+                normal: (-1., 0., 0.),
+            },
+            Vertex {
+                position: (-1., -1., -1.),
+                normal: (-1., 0., 0.),
+            },
+            Vertex {
+                position: (-1., -1., 1.),
+                normal: (-1., 0., 0.),
+            },
+            Vertex {
+                position: (-1., 1., 1.),
+                normal: (-1., 0., 0.),
+            },
+            Vertex {
+                position: (-1., 1., -1.),
+                normal: (-1., 0., 0.),
+            },
+            Vertex {
+                position: (-1., -1., 1.),
+                normal: (-1., 0., 0.),
+            },
+            Vertex {
+                position: (1., -1., -1.),
+                normal: (1., 0., 0.),
+            },
+            Vertex {
+                position: (1., 1., -1.),
+                normal: (1., 0., 0.),
+            },
+            Vertex {
+                position: (1., -1., 1.),
+                normal: (1., 0., 0.),
+            },
+            Vertex {
+                position: (1., 1., -1.),
+                normal: (1., 0., 0.),
+            },
+            Vertex {
+                position: (1., 1., 1.),
+                normal: (1., 0., 0.),
+            },
+            Vertex {
+                position: (1., -1., 1.),
+                normal: (1., 0., 0.),
+            },
+            Vertex {
+                position: (1., -1., -1.),
+                normal: (0., 0., -1.),
+            },
+            Vertex {
+                position: (-1., -1., -1.),
+                normal: (0., 0., -1.),
+            },
+            Vertex {
+                position: (-1., 1., -1.),
+                normal: (0., 0., -1.),
+            },
+            Vertex {
+                position: (1., 1., -1.),
+                normal: (0., 0., -1.),
+            },
+            Vertex {
+                position: (1., -1., -1.),
+                normal: (0., 0., -1.),
+            },
+            Vertex {
+                position: (-1., 1., -1.),
+                normal: (0., 0., -1.),
+            },
+            Vertex {
+                position: (-1., -1., 1.),
+                normal: (0., 0., 1.),
+            },
+            Vertex {
+                position: (1., -1., 1.),
+                normal: (0., 0., 1.),
+            },
+            Vertex {
+                position: (-1., 1., 1.),
+                normal: (0., 0., 1.),
+            },
+            Vertex {
+                position: (1., -1., 1.),
+                normal: (0., 0., 1.),
+            },
+            Vertex {
+                position: (1., 1., 1.),
+                normal: (0., 0., 1.),
+            },
+            Vertex {
+                position: (-1., 1., 1.),
+                normal: (0., 0., 1.),
+            },
+            Vertex {
+                position: (-1., -1., 1.),
+                normal: (0., -1., 0.),
+            },
+            Vertex {
+                position: (-1., -1., -1.),
+                normal: (0., -1., 0.),
+            },
+            Vertex {
+                position: (1., -1., -1.),
+                normal: (0., -1., 0.),
+            },
+            Vertex {
+                position: (1., -1., 1.),
+                normal: (0., -1., 0.),
+            },
+            Vertex {
+                position: (-1., -1., 1.),
+                normal: (0., -1., 0.),
+            },
+            Vertex {
+                position: (1., -1., -1.),
+                normal: (0., -1., 0.),
+            },
+            Vertex {
+                position: (-1., 1., -1.),
+                normal: (0., 1., 0.),
+            },
+            Vertex {
+                position: (-1., 1., 1.),
+                normal: (0., 1., 0.),
+            },
+            Vertex {
+                position: (1., 1., -1.),
+                normal: (0., 1., 0.),
+            },
+            Vertex {
+                position: (-1., 1., 1.),
+                normal: (0., 1., 0.),
+            },
+            Vertex {
+                position: (1., 1., 1.),
+                normal: (0., 1., 0.),
+            },
+            Vertex {
+                position: (1., 1., -1.),
+                normal: (0., 1., 0.),
+            },
         ];
 
         Cube {

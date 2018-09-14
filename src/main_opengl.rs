@@ -4,10 +4,10 @@ extern crate glium;
 extern crate eventual;
 extern crate time;
 
-mod sphere;
 mod cube;
-mod state;
 mod glmath;
+mod sphere;
+mod state;
 mod table;
 
 #[derive(Clone, Copy)]
@@ -23,10 +23,9 @@ fn main() {
     let mut state = state::State::new();
     let mut table = table::Table::new();
 
-
+    use eventual::{Async, Future};
     use glium::{DisplayBuild, Surface};
     use glmath::Mat4;
-    use eventual::{Future, Async};
 
     let display = glium::glutin::WindowBuilder::new()
         .with_depth_buffer(24)
@@ -36,30 +35,32 @@ fn main() {
     let sphere = sphere::Sphere::new(&display, 30, 30);
     let cube = cube::Cube::new(&display);
 
-    let board_verticies = vec![Vertex {
-                                   position: [-2., -2., -2.],
-                                   normal: [0.0, 0.0, 1.0],
-                               },
-                               Vertex {
-                                   position: [2., -2., -2.],
-                                   normal: [0.0, 0.0, 1.0],
-                               },
-                               Vertex {
-                                   position: [-2., 2., -2.],
-                                   normal: [0.0, 0.0, 1.0],
-                               },
-                               Vertex {
-                                   position: [2., -2., -2.],
-                                   normal: [0.0, 0.0, 1.0],
-                               },
-                               Vertex {
-                                   position: [2., 2., -2.],
-                                   normal: [0.0, 0.0, 1.0],
-                               },
-                               Vertex {
-                                   position: [-2., 2., -2.],
-                                   normal: [0.0, 0.0, 1.0],
-                               }];
+    let board_verticies = vec![
+        Vertex {
+            position: [-2., -2., -2.],
+            normal: [0.0, 0.0, 1.0],
+        },
+        Vertex {
+            position: [2., -2., -2.],
+            normal: [0.0, 0.0, 1.0],
+        },
+        Vertex {
+            position: [-2., 2., -2.],
+            normal: [0.0, 0.0, 1.0],
+        },
+        Vertex {
+            position: [2., -2., -2.],
+            normal: [0.0, 0.0, 1.0],
+        },
+        Vertex {
+            position: [2., 2., -2.],
+            normal: [0.0, 0.0, 1.0],
+        },
+        Vertex {
+            position: [-2., 2., -2.],
+            normal: [0.0, 0.0, 1.0],
+        },
+    ];
     let board_verticies = glium::VertexBuffer::new(&display, &board_verticies).unwrap();
     let board_indices = glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList);
 
@@ -146,9 +147,10 @@ fn main() {
             let aspect_ratio = width as f32 / height as f32;
             Mat4::perspective(aspect_ratio, 3.14f32 / 3.0, 0.1, 1024.0)
         };
-        let view = Mat4::translation(0.0, 0.0, -8.0) * Mat4::rotation(theta, 1.0, 0.0, 0.0) *
-                   Mat4::rotation(phi, 0.0, 0.0, -1.0) * Mat4::scale(scale);
-
+        let view = Mat4::translation(0.0, 0.0, -8.0)
+            * Mat4::rotation(theta, 1.0, 0.0, 0.0)
+            * Mat4::rotation(phi, 0.0, 0.0, -1.0)
+            * Mat4::scale(scale);
 
         let uniform = uniform!{
             model: Mat4::identity().0,
@@ -169,20 +171,21 @@ fn main() {
             ..Default::default()
         };
 
-
-        target.draw(&board_verticies,
-                  &board_indices,
-                  &program,
-                  &uniform,
-                  &params)
-            .unwrap();
+        target
+            .draw(
+                &board_verticies,
+                &board_indices,
+                &program,
+                &uniform,
+                &params,
+            ).unwrap();
 
         for x in (0..4).rev() {
             for y in (0..4).rev() {
                 for z in 0..4 {
                     let player = state.get(x, y, z);
-                    let model = Mat4::translation(x as f32 - 1.5, y as f32 - 1.5, z as f32 - 1.5) *
-                                Mat4::scale(if player == 1 { 0.4 } else { 0.49 });
+                    let model = Mat4::translation(x as f32 - 1.5, y as f32 - 1.5, z as f32 - 1.5)
+                        * Mat4::scale(if player == 1 { 0.4 } else { 0.49 });
 
                     let high_color;
                     let dark_color;
@@ -199,14 +202,14 @@ fn main() {
                         continue;
                     }
 
-                    let light: [f32; 3] = if last_move.0 == x && last_move.1 == y &&
-                                             last_move.2 == z {
-                        let t = ((5.0 * time::precise_time_s()) % (2.0 * std::f64::consts::PI)) as
-                                f32;
-                        [t.cos(), t.sin(), 0f32]
-                    } else {
-                        [0., 0., -3f32]
-                    };
+                    let light: [f32; 3] =
+                        if last_move.0 == x && last_move.1 == y && last_move.2 == z {
+                            let t = ((5.0 * time::precise_time_s()) % (2.0 * std::f64::consts::PI))
+                                as f32;
+                            [t.cos(), t.sin(), 0f32]
+                        } else {
+                            [0., 0., -3f32]
+                        };
 
                     let uniform = uniform!{
                         model: model.0,
@@ -231,19 +234,23 @@ fn main() {
                     };
 
                     if player == 1 {
-                        target.draw(cube.get_positions(),
-                                  cube.get_indices(),
-                                  &program,
-                                  &uniform,
-                                  &params)
-                            .unwrap();
+                        target
+                            .draw(
+                                cube.get_positions(),
+                                cube.get_indices(),
+                                &program,
+                                &uniform,
+                                &params,
+                            ).unwrap();
                     } else {
-                        target.draw(sphere.get_positions(),
-                                  sphere.get_indices(),
-                                  &program,
-                                  &uniform,
-                                  &params)
-                            .unwrap();
+                        target
+                            .draw(
+                                sphere.get_positions(),
+                                sphere.get_indices(),
+                                &program,
+                                &uniform,
+                                &params,
+                            ).unwrap();
                     }
 
                     if player == -1 {
@@ -295,10 +302,12 @@ fn main() {
 
                     let t1 = time::precise_time_s();
 
-                    println!("value={} {:.2} seconds {} values into table",
-                             best_value,
-                             t1 - t0,
-                             table.len());
+                    println!(
+                        "value={} {:.2} seconds {} values into table",
+                        best_value,
+                        t1 - t0,
+                        table.len()
+                    );
 
                     for z in 0..4 {
                         if state.get(best_mov.0, best_mov.1, z) == -1 {
@@ -377,7 +386,9 @@ fn main() {
                         phi += (dx as f32) * 0.01;
                         theta -= (dy as f32) * 0.01;
 
-                        phi = phi.max(3.1416 * (-1.0 / 8.0)).min(3.1416 * (1.0 / 2.0 + 1.0 / 8.0));
+                        phi = phi
+                            .max(3.1416 * (-1.0 / 8.0))
+                            .min(3.1416 * (1.0 / 2.0 + 1.0 / 8.0));
                         theta = theta.max(0.0).min(3.1416 * (1.0 / 2.0 + 1.0 / 8.0));
                     }
                     mouse_last_pos = (x, y);
