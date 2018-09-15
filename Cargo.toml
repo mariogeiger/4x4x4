@@ -12,6 +12,6 @@ name = "opengl"
 path = "src/main_opengl.rs"
 
 [dependencies]
-glium = "0.16"
-eventual = "0.1.7"
+glium = "0.22"
+eventual = "0.1"
 time = "0.1"

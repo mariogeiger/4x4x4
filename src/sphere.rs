@@ -21,11 +21,13 @@ impl glium::vertex::Vertex for Vertex {
                 Cow::Borrowed("position"),
                 0,
                 glium::vertex::AttributeType::F32F32F32,
+                false,
             ),
             (
                 Cow::Borrowed("normal"),
                 0,
                 glium::vertex::AttributeType::F32F32F32,
+                false,
             ),
         ])
     }

@@ -24,13 +24,13 @@ fn main() {
     let mut table = table::Table::new();
 
     use eventual::{Async, Future};
-    use glium::{DisplayBuild, Surface};
+    use glium::Surface;
     use glmath::Mat4;
 
-    let display = glium::glutin::WindowBuilder::new()
-        .with_depth_buffer(24)
-        .build_glium()
-        .unwrap();
+    let mut events_loop = glium::glutin::EventsLoop::new();
+    let window = glium::glutin::WindowBuilder::new().with_title("4x4x4");
+    let context = glium::glutin::ContextBuilder::new();
+    let display = glium::Display::new(window, context, &events_loop).unwrap();
 
     let sphere = sphere::Sphere::new(&display, 30, 30);
     let cube = cube::Cube::new(&display);
@@ -120,7 +120,7 @@ fn main() {
     let mut scale: f32 = 1.0;
 
     let mut last_move = (4, 4, 4); // start out of bounds
-    let mut mouse_last_pos = (0, 0);
+    let mut mouse_last_pos = (0.0, 0.0);
     let mut mouse_pressed = false;
     let mut key_position = (0, 0);
     let mut player_turn = 0;
@@ -330,86 +330,114 @@ fn main() {
             }
         }
 
-        for ev in display.poll_events() {
-            use glium::glutin::*;
-            match ev {
-                Event::Closed => return,
-                Event::KeyboardInput(key_state, _, key_code) => {
-                    if key_state == ElementState::Pressed && key_code.is_some() {
-                        let key_code = key_code.unwrap();
-                        match key_code {
-                            VirtualKeyCode::Left => {
-                                if key_position.0 > 0 {
-                                    key_position.0 -= 1;
-                                }
-                            }
-                            VirtualKeyCode::Right => {
-                                if key_position.0 < 3 {
-                                    key_position.0 += 1;
-                                }
-                            }
-                            VirtualKeyCode::Down => {
-                                if key_position.1 > 0 {
-                                    key_position.1 -= 1;
-                                }
-                            }
-                            VirtualKeyCode::Up => {
-                                if key_position.1 < 3 {
-                                    key_position.1 += 1;
-                                }
-                            }
-                            VirtualKeyCode::Return | VirtualKeyCode::Space => {
-                                if player_turn == 0 {
-                                    if state.add(key_position.0, key_position.1, player_turn) {
-                                        player_turn = 1 - player_turn;
-                                    }
-                                }
-                            }
-                            VirtualKeyCode::Escape => {
-                                if player_turn == 0 {
-                                    state = state::State::new();
-                                    last_move.0 = 4;
-                                }
-                            }
-                            VirtualKeyCode::P => {
-                                player_turn = 1;
-                            }
-                            _ => (),
-                        }
+        use glium::glutin::{ElementState, Event, KeyboardInput, MouseButton, MouseScrollDelta, VirtualKeyCode, WindowEvent, dpi};
+        let mut stop = false;
+        events_loop.poll_events(|ev| {
+            if let Event::WindowEvent {
+                window_id: _,
+                event: ev,
+            } = ev
+            {
+                match ev {
+                    WindowEvent::CloseRequested => {
+                        stop = true;
                     }
-                }
-                Event::MouseMoved(x, y) => {
-                    if mouse_pressed {
-                        let dx = x - mouse_last_pos.0;
-                        let dy = y - mouse_last_pos.1;
 
-                        phi += (dx as f32) * 0.01;
-                        theta -= (dy as f32) * 0.01;
-
-                        phi = phi
-                            .max(3.1416 * (-1.0 / 8.0))
-                            .min(3.1416 * (1.0 / 2.0 + 1.0 / 8.0));
-                        theta = theta.max(0.0).min(3.1416 * (1.0 / 2.0 + 1.0 / 8.0));
-                    }
-                    mouse_last_pos = (x, y);
-                }
-                Event::MouseInput(state, button) => {
-                    if button == MouseButton::Left {
-                        match state {
-                            ElementState::Pressed => {
-                                mouse_pressed = true;
-                            }
-                            ElementState::Released => {
-                                mouse_pressed = false;
+                    WindowEvent::KeyboardInput {
+                        device_id: _,
+                        input:
+                            KeyboardInput {
+                                scancode: _,
+                                state: ElementState::Pressed,
+                                virtual_keycode: Some(key_code),
+                                modifiers: _,
+                            },
+                    } => match key_code {
+                        VirtualKeyCode::Left => {
+                            if key_position.0 > 0 {
+                                key_position.0 -= 1;
                             }
                         }
+                        VirtualKeyCode::Right => {
+                            if key_position.0 < 3 {
+                                key_position.0 += 1;
+                            }
+                        }
+                        VirtualKeyCode::Down => {
+                            if key_position.1 > 0 {
+                                key_position.1 -= 1;
+                            }
+                        }
+                        VirtualKeyCode::Up => {
+                            if key_position.1 < 3 {
+                                key_position.1 += 1;
+                            }
+                        }
+                        VirtualKeyCode::Return | VirtualKeyCode::Space => {
+                            if player_turn == 0 {
+                                if state.add(key_position.0, key_position.1, player_turn) {
+                                    player_turn = 1 - player_turn;
+                                }
+                            }
+                        }
+                        VirtualKeyCode::Escape => {
+                            if player_turn == 0 {
+                                state = state::State::new();
+                                last_move.0 = 4;
+                            }
+                        }
+                        VirtualKeyCode::P => {
+                            player_turn = 1;
+                        }
+                        _ => (),
+                    },
+                    WindowEvent::CursorMoved {
+                        device_id: _,
+                        position: dpi::LogicalPosition { x, y },
+                        modifiers: _,
+                    } => {
+                        if mouse_pressed {
+                            let dx = x - mouse_last_pos.0;
+                            let dy = y - mouse_last_pos.1;
+
+                            phi += (dx as f32) * 0.01;
+                            theta -= (dy as f32) * 0.01;
+
+                            phi = phi
+                                .max(3.1416 * (-1.0 / 8.0))
+                                .min(3.1416 * (1.0 / 2.0 + 1.0 / 8.0));
+                            theta = theta.max(0.0).min(3.1416 * (1.0 / 2.0 + 1.0 / 8.0));
+                        }
+                        mouse_last_pos = (x, y);
                     }
+                    WindowEvent::MouseInput {
+                        device_id: _,
+                        state,
+                        button: MouseButton::Left,
+                        modifiers: _,
+                    } => match state {
+                        ElementState::Pressed => {
+                            mouse_pressed = true;
+                        }
+                        ElementState::Released => {
+                            mouse_pressed = false;
+                        }
+                    },
+                    WindowEvent::MouseWheel {
+                        device_id: _,
+                        delta: MouseScrollDelta::LineDelta(_, delta),
+                        phase: _,
+                        modifiers: _,
+                    } => {
+                        scale *= f32::powf(1.01, delta);
+                    }
+                    _ => (),
                 }
-                Event::MouseWheel(MouseScrollDelta::LineDelta(_, delta), _) => {
-                    scale *= f32::powf(1.01, delta);
-                }
-                _ => (),
             }
+        });
+
+        if stop {
+            break;
         }
     }
 }
