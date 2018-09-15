@@ -1,7 +1,8 @@
+use negamax;
 use std;
 use std::cmp::Ordering;
-use table;
 
+#[derive(Clone)]
 pub struct State([i32; 4 * 4 * 4]);
 /* 0---------------> x
    | 0  1  2  3
@@ -10,12 +11,6 @@ pub struct State([i32; 4 * 4 * 4]);
    | 12 13 14 15
    |
    v y               */
-
-impl Clone for State {
-    fn clone(&self) -> State {
-        State(self.0)
-    }
-}
 
 impl PartialEq for State {
     fn eq(&self, other: &State) -> bool {
@@ -58,57 +53,23 @@ impl Ord for State {
 
 impl State {
     pub fn new() -> State {
-        State([-1; 4 * 4 * 4])
+        State([0; 4 * 4 * 4])
     }
-    // -1 : empty
-    // 0 1 : players
+    // 0 : empty
+    // +1 -1 : players
+
     pub fn get(&self, x: usize, y: usize, z: usize) -> i32 {
         self.0[x + 4 * y + 16 * z]
     }
+
     pub fn add(&mut self, x: usize, y: usize, player: i32) -> bool {
         for z in 0..4 {
-            if self.get(x, y, z) == -1 {
+            if self.get(x, y, z) == 0 {
                 self.0[x + 4 * y + 16 * z] = player;
                 return true;
             }
         }
         false
-    }
-
-    pub fn possibilities(&self) -> Vec<(usize, usize)> {
-        let mut r = Vec::new();
-        for x in 0..4 {
-            for y in 0..4 {
-                if self.get(x, y, 3) == -1 {
-                    r.push((x, y));
-                }
-            }
-        }
-        r
-    }
-
-    pub fn win(&self, player: i32) -> bool {
-        'outer: for line in LINES.iter() {
-            for i in 0..4 {
-                if self.0[line[i]] != player {
-                    continue 'outer;
-                }
-            }
-            return true;
-        }
-        false
-    }
-
-    pub fn swap(&mut self) {
-        for i in 0..4 * 4 * 4 {
-            self.0[i] = if self.0[i] == 1 {
-                0
-            } else if self.0[i] == 0 {
-                1
-            } else {
-                -1
-            }
-        }
     }
 
     pub fn symmetry(&self, id: usize) -> State {
@@ -122,9 +83,13 @@ impl State {
 
         x
     }
+}
 
-    // compute the value in player 0 perspective
-    pub fn value(&self) -> i32 {
+impl<'a> negamax::GameState<'a> for State {
+    type It = Vec<State>;
+
+    // compute the value in player +1 perspective
+    fn value(&self) -> i32 {
         // 1        - 1 on a row
         // 76       - 2 on a row
         // 76*76    - 3 on a row
@@ -132,41 +97,41 @@ impl State {
         let mut v = 0;
 
         for line in LINES.iter() {
-            let mut c0 = 0;
-            let mut c1 = 0;
+            let mut me = 0;
+            let mut op = 0;
             for i in 0..4 {
-                if self.0[line[i]] == 0 {
-                    c0 += 1;
-                }
                 if self.0[line[i]] == 1 {
-                    c1 += 1;
+                    me += 1;
+                }
+                if self.0[line[i]] == -1 {
+                    op += 1;
                 }
             }
-            if c1 == 0 {
-                if c0 == 1 {
+            if op == 0 {
+                if me == 1 {
                     v += 1;
                 }
-                if c0 == 2 {
+                if me == 2 {
                     v += 76;
                 }
-                if c0 == 3 {
+                if me == 3 {
                     v += 76 * 76;
                 }
-                if c0 == 4 {
+                if me == 4 {
                     v += 76 * 76 * 76;
                 }
             }
-            if c0 == 0 {
-                if c1 == 1 {
+            if me == 0 {
+                if op == 1 {
                     v -= 1;
                 }
-                if c1 == 2 {
+                if op == 2 {
                     v -= 76;
                 }
-                if c1 == 3 {
+                if op == 3 {
                     v -= 76 * 76;
                 }
-                if c1 == 4 {
+                if op == 4 {
                     v -= 76 * 76 * 76;
                 }
             }
@@ -174,86 +139,44 @@ impl State {
         v
     }
 
-    // returns a score in favor of player `player` in `player` perspective (higher is better)
-    // do not look for score smaller than `alpha`
-    // do not look for score bigger than `beta`
-    pub fn negamax(&self, player: i32, depth: i32, mut alpha: i32, beta: i32) -> i32 {
-        if depth == 0 || self.win(1 - player) {
-            return (1 - 2 * player) * self.value();
-        }
-
-        let mut best_value = -std::i32::MAX;
-
-        for mov in self.possibilities() {
-            let mut child = self.clone();
-            child.add(mov.0, mov.1, player);
-
-            let v = -child.negamax(1 - player, depth - 1, -beta, -alpha);
-
-            if v > best_value {
-                best_value = v;
-            }
-            if v > alpha {
-                alpha = v;
-            }
-            if alpha >= beta {
-                break;
+    fn possibilities(&self, player: i32) -> Vec<State> {
+        let mut r = Vec::new();
+        for x in 0..4 {
+            for y in 0..4 {
+                if self.get(x, y, 3) == 0 {
+                    let mut copy = self.clone();
+                    copy.add(x, y, player);
+                    r.push(copy);
+                }
             }
         }
-        best_value
+        r
     }
 
-    pub fn negamax_table(
-        &self,
-        player: i32,
-        depth: i32,
-        mut alpha: i32,
-        mut beta: i32,
-        table: &mut table::Table,
-    ) -> i32 {
-        if depth == 0 || self.win(1 - player) {
-            return (1 - 2 * player) * self.value();
-        }
-
-        if depth <= 2 {
-            return self.negamax(player, depth, alpha, beta);
-        }
-
-        if let Some(s) = table.get(self, player, depth, &mut alpha, &mut beta) {
-            return s;
-        }
-
-        let orig_alpha = alpha;
-        let orig_beta = beta;
-
-        let mut best_value = -std::i32::MAX;
-
-        for mov in self.possibilities() {
-            let mut child = self.clone();
-            child.add(mov.0, mov.1, player);
-
-            let v = -child.negamax_table(1 - player, depth - 1, -beta, -alpha, table);
-
-            if v > best_value {
-                best_value = v;
+    fn win(&self, player: i32) -> bool {
+        'outer: for line in LINES.iter() {
+            for i in 0..4 {
+                if self.0[line[i]] != player {
+                    continue 'outer;
+                }
             }
-            if v > alpha {
-                alpha = v;
-            }
-            if alpha >= beta {
-                break;
-            }
+            return true;
         }
+        false
+    }
 
-        table.insert(
-            self.clone(),
-            player,
-            depth,
-            orig_alpha,
-            orig_beta,
-            best_value,
-        );
-        best_value
+    fn swap(&mut self) {
+        for i in 0..4 * 4 * 4 {
+            self.0[i] = -self.0[i];
+        }
+    }
+
+    fn symmetries(&self) -> Vec<State> {
+        let mut r = Vec::new();
+        for i in 0..8 {
+            r.push(self.symmetry(i));
+        }
+        r
     }
 }
 
@@ -273,14 +196,14 @@ impl std::fmt::Display for State {
                 }
                 for z in 0..4 {
                     match self.get(x, y, z) {
-                        -1 => {
+                        0 => {
                             s.push(' ');
                         }
-                        0 => {
-                            s.push('o');
-                        }
                         1 => {
-                            s.push('x');
+                            s.push('+');
+                        }
+                        -1 => {
+                            s.push('-');
                         }
                         _ => {
                             s.push('?');

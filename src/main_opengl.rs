@@ -3,12 +3,14 @@ extern crate glium;
 
 extern crate eventual;
 extern crate time;
+extern crate negamax;
 
 mod cube;
 mod glmath;
 mod sphere;
 mod state;
-mod table;
+
+use negamax::GameState;
 
 #[derive(Clone, Copy)]
 struct Vertex {
@@ -21,7 +23,7 @@ implement_vertex!(Vertex, position, normal);
 fn main() {
     // State of the game
     let mut state = state::State::new();
-    let mut table = table::Table::new();
+    let mut table = negamax::Table::new();
 
     use eventual::{Async, Future};
     use glium::Surface;
@@ -123,20 +125,20 @@ fn main() {
     let mut mouse_last_pos = (0.0, 0.0);
     let mut mouse_pressed = false;
     let mut key_position = (0, 0);
-    let mut player_turn = 0;
+    let mut player_turn = 1;
 
     let mut thread = None;
 
     loop {
         let mut target = display.draw();
 
-        if state.win(0) {
+        if state.win(1) {
             target.clear_color_and_depth((0.9, 0.0, 0.0, 1.0), 1.0);
-        } else if state.win(1) {
+        } else if state.win(-1) {
             target.clear_color_and_depth((0.9, 0.9, 0.0, 1.0), 1.0);
-        } else if player_turn == 0 {
-            target.clear_color_and_depth((0.1, 0.05, 0.05, 1.0), 1.0);
         } else if player_turn == 1 {
+            target.clear_color_and_depth((0.1, 0.05, 0.05, 1.0), 1.0);
+        } else if player_turn == -1 {
             target.clear_color_and_depth((0.1, 0.1, 0.05, 1.0), 1.0);
         } else {
             target.clear_color_and_depth((0.0, 0.1, 0.0, 1.0), 1.0);
@@ -185,17 +187,17 @@ fn main() {
                 for z in 0..4 {
                     let player = state.get(x, y, z);
                     let model = Mat4::translation(x as f32 - 1.5, y as f32 - 1.5, z as f32 - 1.5)
-                        * Mat4::scale(if player == 1 { 0.4 } else { 0.49 });
+                        * Mat4::scale(if player == -1 { 0.4 } else { 0.49 });
 
                     let high_color;
                     let dark_color;
-                    if player == 0 {
+                    if player == 1 {
                         high_color = [1.0, 0.0, 0.0f32];
                         dark_color = [0.9, 0.1, 0.1f32];
-                    } else if player == 1 {
+                    } else if player == -1 {
                         high_color = [1.0, 1.0, 0.0f32];
                         dark_color = [0.9, 0.9, 0.1f32];
-                    } else if player_turn == 0 && key_position.0 == x && key_position.1 == y {
+                    } else if player_turn == 1 && key_position.0 == x && key_position.1 == y {
                         high_color = [0.5, 0.5, 1.0f32];
                         dark_color = [0.5, 0.5, 0.9f32];
                     } else {
@@ -233,7 +235,7 @@ fn main() {
                         ..Default::default()
                     };
 
-                    if player == 1 {
+                    if player == -1 {
                         target
                             .draw(
                                 cube.get_positions(),
@@ -253,7 +255,7 @@ fn main() {
                             ).unwrap();
                     }
 
-                    if player == -1 {
+                    if player == 0 {
                         break;
                     }
                 }
@@ -263,33 +265,31 @@ fn main() {
         target.finish().unwrap();
 
         // AI turn
-        if player_turn == 1 {
+        if player_turn == -1 {
             // if thread not already running
             if thread.is_none() {
                 let state = state.clone();
                 let table = table.clone();
 
                 thread = Some(Future::spawn(move || {
+                    let mut state = state.clone();
                     let mut table = table.clone();
 
                     let mut best_value = -std::i32::MAX;
                     let mut alpha = -std::i32::MAX;
                     let beta = std::i32::MAX;
-                    let mut best_mov = (0, 0);
 
                     let t0 = time::precise_time_s();
 
-                    let possibilities = state.possibilities();
+                    let possibilities = state.possibilities(-1);
                     let n = possibilities.len();
                     let mut i = 0;
-                    for mov in possibilities {
+                    for y in possibilities {
                         println!("{}/{}...", i, n);
-                        let mut y = state.clone();
-                        y.add(mov.0, mov.1, 1);
-                        let v = -y.negamax_table(0, 6, -beta, -alpha, &mut table);
+                        let v = -y.negamax_table(1, 6, -beta, -alpha, &mut table);
                         if v > best_value {
                             best_value = v;
-                            best_mov = mov;
+                            state = y;
                         }
                         if v > alpha {
                             alpha = v;
@@ -309,24 +309,17 @@ fn main() {
                         table.len()
                     );
 
-                    for z in 0..4 {
-                        if state.get(best_mov.0, best_mov.1, z) == -1 {
-                            return ((best_mov.0, best_mov.1, z), table);
-                        }
-                    }
-
-                    ((0, 0, 0), table)
+                    (state, table)
                 }));
             }
 
             // if thread finished
             if thread.as_ref().map_or(false, Future::is_ready) {
                 let result = thread.unwrap().expect().unwrap();
-                last_move = result.0;
-                state.add(last_move.0, last_move.1, 1);
+                state = result.0;
                 table = result.1;
                 thread = None;
-                player_turn = 0;
+                player_turn = 1;
             }
         }
 
@@ -374,20 +367,20 @@ fn main() {
                             }
                         }
                         VirtualKeyCode::Return | VirtualKeyCode::Space => {
-                            if player_turn == 0 {
+                            if player_turn == 1 {
                                 if state.add(key_position.0, key_position.1, player_turn) {
-                                    player_turn = 1 - player_turn;
+                                    player_turn = -player_turn;
                                 }
                             }
                         }
                         VirtualKeyCode::Escape => {
-                            if player_turn == 0 {
+                            if player_turn == 1 {
                                 state = state::State::new();
                                 last_move.0 = 4;
                             }
                         }
                         VirtualKeyCode::P => {
-                            player_turn = 1;
+                            player_turn = -1;
                         }
                         _ => (),
                     },

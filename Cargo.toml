@@ -4,14 +4,15 @@ version = "0.1.0"
 authors = ["Mario Geiger <geiger.mario@gmail.com>"]
 
 [[bin]]
-name = "terminal"
-path = "src/main_nogui.rs"
-
-[[bin]]
 name = "opengl"
 path = "src/main_opengl.rs"
+
+[[bin]]
+name = "terminal"
+path = "src/main_nogui.rs"
 
 [dependencies]
 glium = "0.22"
 eventual = "0.1"
 time = "0.1"
+negamax = { git = "https://github.com/mariogeiger/negamax" }
