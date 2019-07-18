@@ -2,8 +2,8 @@
 extern crate glium;
 
 extern crate eventual;
-extern crate time;
 extern crate negamax;
+extern crate time;
 
 mod cube;
 mod glmath;
@@ -154,7 +154,7 @@ fn main() {
             * Mat4::rotation(phi, 0.0, 0.0, -1.0)
             * Mat4::scale(scale);
 
-        let uniform = uniform!{
+        let uniform = uniform! {
             model: Mat4::identity().0,
             view: view.0,
             perspective: pers.0,
@@ -180,7 +180,8 @@ fn main() {
                 &program,
                 &uniform,
                 &params,
-            ).unwrap();
+            )
+            .unwrap();
 
         for x in (0..4).rev() {
             for y in (0..4).rev() {
@@ -213,7 +214,7 @@ fn main() {
                             [0., 0., -3f32]
                         };
 
-                    let uniform = uniform!{
+                    let uniform = uniform! {
                         model: model.0,
                         view: view.0,
                         perspective: pers.0,
@@ -243,7 +244,8 @@ fn main() {
                                 &program,
                                 &uniform,
                                 &params,
-                            ).unwrap();
+                            )
+                            .unwrap();
                     } else {
                         target
                             .draw(
@@ -252,7 +254,8 @@ fn main() {
                                 &program,
                                 &uniform,
                                 &params,
-                            ).unwrap();
+                            )
+                            .unwrap();
                     }
 
                     if player == 0 {
@@ -323,7 +326,10 @@ fn main() {
             }
         }
 
-        use glium::glutin::{ElementState, Event, KeyboardInput, MouseButton, MouseScrollDelta, VirtualKeyCode, WindowEvent, dpi};
+        use glium::glutin::{
+            dpi, ElementState, Event, KeyboardInput, MouseButton, MouseScrollDelta, VirtualKeyCode,
+            WindowEvent,
+        };
         let mut stop = false;
         events_loop.poll_events(|ev| {
             if let Event::WindowEvent {

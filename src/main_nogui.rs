@@ -1,5 +1,5 @@
-extern crate time;
 extern crate negamax;
+extern crate time;
 
 mod state;
 

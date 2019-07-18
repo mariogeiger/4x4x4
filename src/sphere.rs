@@ -119,7 +119,8 @@ impl Sphere {
                 facade,
                 glium::index::PrimitiveType::TrianglesList,
                 &indices,
-            ).unwrap(),
+            )
+            .unwrap(),
         }
     }
 

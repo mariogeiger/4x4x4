@@ -5,12 +5,12 @@ use std::cmp::Ordering;
 #[derive(Clone)]
 pub struct State([i32; 4 * 4 * 4]);
 /* 0---------------> x
-   | 0  1  2  3
-   | 4  5  6  7
-   | 8  9  10 11
-   | 12 13 14 15
-   |
-   v y               */
+.| 0  1  2  3
+.| 4  5  6  7
+.| 8  9  10 11
+.| 12 13 14 15
+.|
+.v y               */
 
 impl PartialEq for State {
     fn eq(&self, other: &State) -> bool {
