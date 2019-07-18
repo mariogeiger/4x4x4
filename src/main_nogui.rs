@@ -49,8 +49,6 @@ fn robot(x: &mut state::State, table: &mut negamax::Table<state::State>) -> bool
         i += 1;
     }
 
-    table.clean();
-
     let t1 = time::precise_time_s();
 
     println!(

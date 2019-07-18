@@ -301,8 +301,6 @@ fn main() {
                         i += 1;
                     }
 
-                    table.clean();
-
                     let t1 = time::precise_time_s();
 
                     println!(
