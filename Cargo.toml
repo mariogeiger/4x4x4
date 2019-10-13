@@ -13,6 +13,6 @@ path = "src/main_nogui.rs"
 
 [dependencies]
 glium = "*"
-eventual = "0.1"
-time = "0.1"
+eventual = "*"
+time = "*"
 negamax = { git = "https://github.com/mariogeiger/negamax" }

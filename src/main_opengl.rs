@@ -133,15 +133,15 @@ fn main() {
         let mut target = display.draw();
 
         if state.win(1) {
-            target.clear_color_and_depth((0.9, 0.0, 0.0, 1.0), 1.0);
+            target.clear_color_and_depth((0.9, 0.0, 0.0, 0.5), 1.0);
         } else if state.win(-1) {
-            target.clear_color_and_depth((0.9, 0.9, 0.0, 1.0), 1.0);
+            target.clear_color_and_depth((0.9, 0.9, 0.0, 0.5), 1.0);
         } else if player_turn == 1 {
-            target.clear_color_and_depth((0.1, 0.05, 0.05, 1.0), 1.0);
+            target.clear_color_and_depth((0.1, 0.05, 0.05, 0.5), 1.0);
         } else if player_turn == -1 {
-            target.clear_color_and_depth((0.1, 0.1, 0.05, 1.0), 1.0);
+            target.clear_color_and_depth((0.1, 0.1, 0.05, 0.5), 1.0);
         } else {
-            target.clear_color_and_depth((0.0, 0.1, 0.0, 1.0), 1.0);
+            target.clear_color_and_depth((0.0, 0.1, 0.0, 0.5), 1.0);
         }
 
         let pers = {
